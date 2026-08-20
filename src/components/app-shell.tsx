@@ -15,7 +15,7 @@ export function AppShell({
   doctorName,
 }: {
   children: ReactNode;
-  doctorName?: string | null;
+  doctorName?: string | null | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
