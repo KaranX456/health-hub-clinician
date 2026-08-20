@@ -71,7 +71,7 @@ function AuthPage() {
           password,
           options: {
             data: { role: "doctor", full_name: fullName.trim(), license_number: license.trim() },
-            emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+            emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
