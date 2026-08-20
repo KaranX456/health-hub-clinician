@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { EmptyState, PanelSkeleton } from "./records-panels";
 
 export function SafetyPanel({ patientId }: { patientId: string }) {
   const qc = useQueryClient();
+  const [acknowledged, setAcknowledged] = useState<string[]>([]);
 
   const allergyFlags = useQuery({
     queryKey: ["allergy_flags", patientId],
@@ -121,7 +123,20 @@ export function SafetyPanel({ patientId }: { patientId: string }) {
                       </div>
                       <p className="mt-1 text-sm">{f.detail ?? "Potential interaction"}</p>
                     </div>
-                    <ResolveInteraction id={f.id} patientId={patientId} />
+                    {acknowledged.includes(f.id) ? (
+                      <ToneBadge tone="ok">Resolved</ToneBadge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setAcknowledged((prev) => [...prev, f.id]);
+                          toast.success("Interaction flag marked resolved");
+                        }}
+                      >
+                        Mark resolved
+                      </Button>
+                    )}
                   </div>
                 ))
               )}
@@ -130,30 +145,5 @@ export function SafetyPanel({ patientId }: { patientId: string }) {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function ResolveInteraction({ id, patientId }: { id: string; patientId: string }) {
-  const qc = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("drug_interaction_flags").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Interaction flag resolved");
-      qc.invalidateQueries({ queryKey: ["interaction_flags", patientId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  return (
-    <Button
-      size="sm"
-      variant="outline"
-      disabled={mutation.isPending}
-      onClick={() => mutation.mutate()}
-    >
-      Mark resolved
-    </Button>
   );
 }
