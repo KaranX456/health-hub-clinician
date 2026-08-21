@@ -70,12 +70,12 @@ export function SoapNotePanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const save = useMutation({
+  const save = useMutation<void, Error, boolean>({
     mutationFn: async (finalize: boolean) => {
       const patch: Record<string, unknown> = { ...form };
       if (finalize) {
-        patch.finalized_at = new Date().toISOString();
-        patch.ai_drafted = false;
+        patch["finalized_at"] = new Date().toISOString();
+        patch["ai_drafted"] = false;
       }
       const { error } = await supabase.from("soap_notes").update(patch).eq("id", note!.id);
       if (error) throw error;
