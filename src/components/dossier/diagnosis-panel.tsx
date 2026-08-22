@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { DiagnosisEvidence, DifferentialDiagnosis } from "@/lib/db";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TierBadge, ToneBadge, UrgencyBadge } from "@/components/clinical-badges";
 import { EmptyState, PanelSkeleton } from "./records-panels";
@@ -56,8 +57,155 @@ export function DiagnosisPanel({
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
+
+function GenerateDifferentialCard({ patientId }: { patientId: string }) {
+  const qc = useQueryClient();
+  const [rows, setRows] = useState<{ condition_name: string; icd10_code: string }[]>([
+    { condition_name: "", icd10_code: "" },
+  ]);
+
+  const suggestions = useQuery({
+    queryKey: ["dx_suggestions", patientId],
+    queryFn: async (): Promise<string[]> => {
+      const [hx, sx] = await Promise.all([
+        supabase.from("medical_history").select("condition_name").eq("patient_id", patientId),
+        supabase.from("symptoms").select("description").eq("patient_id", patientId),
+      ]);
+      if (hx.error) throw hx.error;
+      if (sx.error) throw sx.error;
+      const names = [
+        ...((hx.data ?? []) as { condition_name: string | null }[]).map((r) => r.condition_name),
+        ...((sx.data ?? []) as { description: string | null }[]).map((r) => r.description),
+      ].filter((v): v is string => !!v && v.trim().length > 0);
+      return Array.from(new Set(names)).slice(0, 20);
+    },
+  });
+
+  const addCandidate = (name: string) =>
+    setRows((r) => {
+      const empty = r.findIndex((x) => !x.condition_name.trim());
+      if (empty >= 0) {
+        const next = [...r];
+        next[empty] = { ...next[empty], condition_name: name };
+        return next;
+      }
+      return [...r, { condition_name: name, icd10_code: "" }];
+    });
+
+  const run = useMutation({
+    mutationFn: async () => {
+      const candidates = rows
+        .filter((r) => r.condition_name.trim())
+        .map((r) =>
+          r.icd10_code.trim()
+            ? { condition_name: r.condition_name.trim(), icd10_code: r.icd10_code.trim() }
+            : { condition_name: r.condition_name.trim() },
+        );
+      const { data, error } = await supabase.functions.invoke("stage2-score-diagnosis", {
+        body: { patient_id: patientId, candidates },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Differential diagnosis generated");
+      qc.invalidateQueries({ queryKey: ["differential_diagnoses", patientId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const submit = () => {
+    if (!rows.some((r) => r.condition_name.trim())) {
+      toast.error("Add at least one candidate condition");
+      return;
+    }
+    run.mutate();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Generate differential diagnosis</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Enter candidate conditions and run Stage 2 scoring against this patient&apos;s record.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!!suggestions.data?.length && (
+          <div className="flex flex-wrap gap-2">
+            {suggestions.data.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => addCandidate(s)}
+                className="rounded-full border border-border bg-secondary px-3 py-1 text-xs text-secondary-foreground transition-colors hover:bg-accent"
+              >
+                + {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {rows.map((row, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              <Input
+                className="min-w-40 flex-1"
+                placeholder="Condition name"
+                value={row.condition_name}
+                onChange={(e) =>
+                  setRows((r) =>
+                    r.map((x, j) => (j === i ? { ...x, condition_name: e.target.value } : x)),
+                  )
+                }
+              />
+              <Input
+                className="w-32"
+                placeholder="ICD-10 (opt.)"
+                value={row.icd10_code}
+                onChange={(e) =>
+                  setRows((r) =>
+                    r.map((x, j) => (j === i ? { ...x, icd10_code: e.target.value } : x)),
+                  )
+                }
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Remove candidate"
+                disabled={rows.length === 1}
+                onClick={() => setRows((r) => r.filter((_, j) => j !== i))}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setRows((r) => [...r, { condition_name: "", icd10_code: "" }])}
+          >
+            <Plus className="mr-1 size-4" />
+            Add candidate
+          </Button>
+          <Button type="button" size="sm" disabled={run.isPending} onClick={submit}>
+            {run.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+            Run Stage 2 scoring
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function DiagnosisRow({
   diagnosis,
