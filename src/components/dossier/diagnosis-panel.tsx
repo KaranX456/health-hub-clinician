@@ -88,9 +88,7 @@ function GenerateDifferentialCard({ patientId }: { patientId: string }) {
     setRows((r) => {
       const empty = r.findIndex((x) => !x.condition_name.trim());
       if (empty >= 0) {
-        const next = [...r];
-        next[empty] = { ...next[empty], condition_name: name };
-        return next;
+        return r.map((x, j) => (j === empty ? { ...x, condition_name: name } : x));
       }
       return [...r, { condition_name: name, icd10_code: "" }];
     });
