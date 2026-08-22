@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Copy } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,34 @@ function SettingsPage() {
                   value={form.license_number}
                   onChange={(e) => setForm((f) => ({ ...f, license_number: e.target.value }))}
                 />
+              </div>
+              <div className="space-y-1">
+                <Label>Doctor ID</Label>
+                <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
+                  <code className="min-w-0 flex-1 break-all text-xs select-all">
+                    {userId ?? "—"}
+                  </code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!userId}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(userId!);
+                        toast.success("Doctor ID copied");
+                      } catch {
+                        toast.error("Could not copy to clipboard");
+                      }
+                    }}
+                  >
+                    <Copy className="mr-1 size-3.5" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Share this with patients so they can authorize you in their Care Team screen.
+                </p>
               </div>
               <Button type="submit" disabled={save.isPending || !userId}>
                 Save changes
