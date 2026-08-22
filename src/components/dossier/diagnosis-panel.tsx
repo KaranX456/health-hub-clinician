@@ -35,6 +35,8 @@ export function DiagnosisPanel({
   });
 
   return (
+    <div className="space-y-4">
+    <GenerateDifferentialCard patientId={patientId} />
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Ranked differential diagnoses</CardTitle>
