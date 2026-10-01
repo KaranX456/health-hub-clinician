@@ -37,6 +37,7 @@ export function DiagnosisPanel({
 
   return (
     <div className="space-y-4">
+    <Stage1HypothesisPanel patientId={patientId} />
     <GenerateDifferentialCard patientId={patientId} />
     <Card>
       <CardHeader className="pb-3">
@@ -58,6 +59,69 @@ export function DiagnosisPanel({
       </CardContent>
     </Card>
     </div>
+  );
+}
+
+function Stage1HypothesisPanel({ patientId }: { patientId: string }) {
+  const qc = useQueryClient();
+
+  const symptoms = useQuery({
+    queryKey: ["patient_symptoms", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("symptoms")
+        .select("id, description, body_location, created_at")
+        .eq("patient_id", patientId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const analyze = useMutation({
+    mutationFn: async (symptomId: string) => {
+      const { data, error } = await supabase.functions.invoke("generate-stage1-hypotheses", {
+        body: { symptom_id: symptomId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: { hypotheses_created: number; hypotheses_dispatched: number }) => {
+      toast.success(
+        `${data.hypotheses_created} new hypothesis(es) found, ${data.hypotheses_dispatched} scored`,
+      );
+      qc.invalidateQueries({ queryKey: ["differential_diagnoses", patientId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Analyze symptom via community hypotheses</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Matches this patient's symptoms against lived-experience posts to suggest candidate
+          conditions, then runs Stage 2 scoring automatically.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {!symptoms.data?.length ? (
+          <EmptyState text="No symptoms logged for this patient yet." />
+        ) : (
+          symptoms.data.map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2">
+              <span className="text-sm">
+                {s.description}{s.body_location ? ` (${s.body_location})` : ""}
+              </span>
+              <Button size="sm" variant="outline" disabled={analyze.isPending} onClick={() => analyze.mutate(s.id)}>
+                {analyze.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Analyze
+              </Button>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
