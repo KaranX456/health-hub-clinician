@@ -46,7 +46,7 @@ export function AppShell({
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
-          <Activity className="size-5 text-sidebar-primary" />
+          <Activity className="size-5 text-sidebar-primary-foreground" />
           <div className="leading-tight">
             <p className="text-sm font-semibold text-sidebar-foreground">AI Health Companion</p>
             <p className="text-xs text-sidebar-foreground/60">Doctor dashboard</p>
@@ -57,12 +57,13 @@ export function AppShell({
           <p className="px-3 pb-2 text-xs text-sidebar-foreground/60">
             {doctorName ?? "Clinician"}
           </p>
-          <button
+          <Button
+            variant="ghost"
             onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="w-full justify-start gap-3 px-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <LogOut className="size-4" /> Sign out
-          </button>
+          </Button>
         </div>
       </aside>
 
