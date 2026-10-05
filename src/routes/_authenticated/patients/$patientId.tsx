@@ -19,6 +19,16 @@ import { LongitudinalMonitoringPanel } from "@/components/dossier/monitoring-pan
 import { useSession } from "@/hooks/use-doctor";
 
 export const Route = createFileRoute("/_authenticated/patients/$patientId")({
+  head: () => ({
+    meta: [
+      { title: "Patient Dossier — AI Health Companion" },
+      { name: "description", content: "Authorized clinical review of patient records, differential diagnoses, safety and monitoring." },
+      { property: "og:title", content: "Patient Dossier — AI Health Companion" },
+      { property: "og:description", content: "Clinical records, diagnoses, safety flags and longitudinal monitoring." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: DossierPage,
 });
 

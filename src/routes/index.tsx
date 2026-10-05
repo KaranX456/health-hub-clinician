@@ -14,6 +14,8 @@ export const Route = createFileRoute("/")({
           "Clinician workspace for reviewing patient dossiers, ranked differentials, safety flags and longitudinal monitoring.",
       },
       { property: "og:title", content: "Doctor Dashboard — AI Health Companion" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content:

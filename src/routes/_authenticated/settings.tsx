@@ -13,6 +13,16 @@ import { PanelSkeleton } from "@/components/dossier/records-panels";
 import { useDoctorProfile, useSession } from "@/hooks/use-doctor";
 
 export const Route = createFileRoute("/_authenticated/settings")({
+  head: () => ({
+    meta: [
+      { title: "Clinician Profile & Settings — AI Health Companion" },
+      { name: "description", content: "Manage your clinician profile, license details and care authorization ID." },
+      { property: "og:title", content: "Clinician Profile & Settings — AI Health Companion" },
+      { property: "og:description", content: "Clinician profile and care authorization details." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: SettingsPage,
 });
 
