@@ -18,6 +18,8 @@ export const Route = createFileRoute("/auth")({
           "Secure sign-in for verified clinicians to access the AI Health Companion doctor dashboard.",
       },
       { property: "og:title", content: "Clinician Sign In — AI Health Companion" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content: "Secure sign-in for verified clinicians using the AI Health Companion.",

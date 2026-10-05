@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, Circle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Patient } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,16 @@ import { EmptyState, PanelSkeleton } from "@/components/dossier/records-panels";
 import { useSession } from "@/hooks/use-doctor";
 
 export const Route = createFileRoute("/_authenticated/patients/")({
+  head: () => ({
+    meta: [
+      { title: "Patient Roster — AI Health Companion" },
+      { name: "description", content: "Active care authorizations, open crises and patients needing clinician attention." },
+      { property: "og:title", content: "Patient Roster — AI Health Companion" },
+      { property: "og:description", content: "Review your active patients and clinical attention signals." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: RosterPage,
 });
 
@@ -68,33 +78,59 @@ function RosterPage() {
     },
   });
 
+  const totalPatients = data?.length ?? 0;
+  const totalCrises = data?.reduce((sum, row) => sum + row.openCrises, 0) ?? 0;
+  const totalAttention = data?.reduce((sum, row) => sum + row.needsAttention, 0) ?? 0;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Patient roster</h1>
+        <h1 className="text-2xl font-semibold">Patient roster</h1>
         <p className="text-sm text-muted-foreground">
           Patients who have granted you an active care authorization.
         </p>
       </header>
 
-      <Card>
-        <CardHeader className="pb-3">
+      <dl aria-label="Patient roster statistics" className="grid grid-cols-3 divide-x divide-background/15 rounded-lg bg-foreground py-5 text-background">
+        {[
+          { label: "Active patients", value: totalPatients },
+          { label: "Open crises", value: totalCrises },
+          { label: "Needs attention", value: totalAttention },
+        ].map((stat) => (
+          <div key={stat.label} className="flex min-w-0 flex-col gap-2 px-3 sm:px-6">
+            <dt className="text-xs font-medium text-background/75 sm:text-sm">{stat.label}</dt>
+            <dd className="font-stat text-3xl leading-none tabular-nums sm:text-4xl">
+              {isLoading ? <span aria-label="Loading" className="inline-block h-9 w-10 animate-pulse rounded bg-background/15" /> : stat.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <Card className="gap-0 border-0 bg-transparent py-0 shadow-none">
+        <CardHeader className="border-b border-border px-0 pb-3">
           <CardTitle className="text-base">Active patients</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0">
           {isLoading ? (
             <PanelSkeleton rows={4} />
           ) : !data?.length ? (
             <EmptyState text="No patients have linked to your account yet." />
           ) : (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-border border-b border-border">
               {data.map((row) => (
                 <li key={row.patient.id}>
                   <Link
                     to="/patients/$patientId"
                     params={{ patientId: row.patient.id }}
-                    className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3 transition-colors hover:bg-accent"
+                    className="flex flex-wrap items-center gap-3 px-2 py-4 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
+                    {row.openCrises > 0 ? (
+                      <AlertTriangle aria-label="Open crisis" className="size-4 shrink-0 text-destructive" />
+                    ) : row.needsAttention > 0 ? (
+                      <AlertTriangle aria-label="Needs clinician attention" className="size-4 shrink-0 text-warning" />
+                    ) : (
+                      <Circle aria-label="No flags" className="mx-1 size-2 shrink-0 fill-muted-foreground/40 text-muted-foreground/40" />
+                    )}
                     <div className="min-w-40">
                       <p className="font-medium">{row.patient.full_name ?? "Unnamed patient"}</p>
                       <p className="text-xs text-muted-foreground">

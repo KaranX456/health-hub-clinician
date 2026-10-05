@@ -78,16 +78,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "AI Health Companion — Clinician Workspace" },
+      { name: "description", content: "Clinical patient review and care coordination workspace." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "AI Health Companion — Clinician Workspace" },
+      { property: "og:description", content: "Clinical patient review and care coordination workspace." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" },
       {
         rel: "stylesheet",
         href: appCss,
