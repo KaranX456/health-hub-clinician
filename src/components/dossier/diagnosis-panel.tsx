@@ -7,7 +7,8 @@ import type { DiagnosisEvidence, DifferentialDiagnosis } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TierBadge, ToneBadge, UrgencyBadge } from "@/components/clinical-badges";
+import { ToneBadge } from "@/components/clinical-badges";
+import { cn } from "@/lib/utils";
 import { EmptyState, PanelSkeleton } from "./records-panels";
 import { SoapNotePanel } from "./soap-panel";
 import { TreatmentOptionsPanel } from "./treatment-panel";
@@ -46,15 +47,17 @@ export function DiagnosisPanel({
           Evidence must be reviewed before a diagnosis can be confirmed.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent>
         {isLoading ? (
           <PanelSkeleton rows={4} />
         ) : !data?.length ? (
           <EmptyState text="No differential diagnoses generated for this patient." />
         ) : (
-          data.map((d) => (
-            <DiagnosisRow key={d.id} diagnosis={d} doctorId={doctorId} patientId={patientId} />
-          ))
+          <div className="divide-y divide-border">
+            {data.map((d) => (
+              <DiagnosisRow key={d.id} diagnosis={d} doctorId={doctorId} patientId={patientId} />
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
