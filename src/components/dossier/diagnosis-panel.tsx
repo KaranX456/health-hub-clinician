@@ -7,7 +7,8 @@ import type { DiagnosisEvidence, DifferentialDiagnosis } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TierBadge, ToneBadge, UrgencyBadge } from "@/components/clinical-badges";
+import { ToneBadge } from "@/components/clinical-badges";
+import { cn } from "@/lib/utils";
 import { EmptyState, PanelSkeleton } from "./records-panels";
 import { SoapNotePanel } from "./soap-panel";
 import { TreatmentOptionsPanel } from "./treatment-panel";
@@ -46,15 +47,17 @@ export function DiagnosisPanel({
           Evidence must be reviewed before a diagnosis can be confirmed.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent>
         {isLoading ? (
           <PanelSkeleton rows={4} />
         ) : !data?.length ? (
           <EmptyState text="No differential diagnoses generated for this patient." />
         ) : (
-          data.map((d) => (
-            <DiagnosisRow key={d.id} diagnosis={d} doctorId={doctorId} patientId={patientId} />
-          ))
+          <div className="divide-y divide-border">
+            {data.map((d) => (
+              <DiagnosisRow key={d.id} diagnosis={d} doctorId={doctorId} patientId={patientId} />
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -269,6 +272,24 @@ function GenerateDifferentialCard({ patientId }: { patientId: string }) {
 }
 
 
+const TIER_STYLES: Record<string, { dot: string; pill: string; label: string }> = {
+  well_established: {
+    dot: "bg-success",
+    pill: "bg-success/15 text-success",
+    label: "Well established",
+  },
+  moderate: {
+    dot: "bg-warning",
+    pill: "bg-warning/15 text-warning",
+    label: "Moderate evidence",
+  },
+  rare_contested: {
+    dot: "bg-destructive",
+    pill: "bg-destructive/10 text-destructive",
+    label: "Rare / contested",
+  },
+};
+
 function DiagnosisRow({
   diagnosis,
   doctorId,
@@ -284,7 +305,6 @@ function DiagnosisRow({
 
   const evidence = useQuery({
     queryKey: ["diagnosis_evidence", diagnosis.id],
-    enabled: expanded,
     queryFn: async (): Promise<DiagnosisEvidence[]> => {
       const { data, error } = await supabase
         .from("diagnosis_evidence")
@@ -321,33 +341,57 @@ function DiagnosisRow({
     if (next) setReviewed(true);
   };
 
+  const tier =
+    (diagnosis.confidence_tier && TIER_STYLES[diagnosis.confidence_tier]) || {
+      dot: "bg-muted-foreground",
+      pill: "bg-muted text-muted-foreground",
+      label: "Unrated",
+    };
+  const evidenceCount = evidence.data?.length;
+  const probText =
+    diagnosis.probability_score != null
+      ? `${Math.round(Number(diagnosis.probability_score) * (Number(diagnosis.probability_score) <= 1 ? 100 : 1))}%`
+      : "n/a";
+
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="flex flex-wrap items-center gap-3 p-3">
-        <span className="flex size-7 items-center justify-center rounded-md bg-secondary text-xs font-semibold text-secondary-foreground">
-          #{diagnosis.rank ?? "—"}
-        </span>
+    <div>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={expanded}
+        className="flex w-full flex-wrap items-center gap-2 p-3 text-left transition-colors hover:bg-muted/40"
+      >
+        <span aria-hidden className={cn("size-2 shrink-0 rounded-full", tier.dot)} />
         <span className="font-medium">{diagnosis.condition_name ?? "Unnamed condition"}</span>
-        <TierBadge tier={diagnosis.confidence_tier} />
-        <UrgencyBadge urgency={diagnosis.urgency} />
+        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", tier.pill)}>
+          {tier.label}
+        </span>
         {diagnosis.doctor_confirmed && <ToneBadge tone="info">Confirmed</ToneBadge>}
         {!diagnosis.disclosed_to_patient && (
           <ToneBadge tone="neutral">Undisclosed to patient</ToneBadge>
         )}
-        <Button size="sm" variant="outline" className="ml-auto" onClick={toggle}>
-          {expanded ? <ChevronDown className="mr-1 size-4" /> : <ChevronRight className="mr-1 size-4" />}
-          Why?
-        </Button>
-      </div>
+        <span className="ml-auto shrink-0 text-sm tabular-nums text-muted-foreground">
+          {probText}
+        </span>
+        {expanded ? (
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        )}
+      </button>
+      <p className="px-3 pb-3 text-xs text-muted-foreground">
+        {diagnosis.urgency ? `Urgency: ${diagnosis.urgency} · ` : ""}
+        {evidenceCount != null
+          ? `${evidenceCount} evidence ${evidenceCount === 1 ? "row" : "rows"} · `
+          : ""}
+        tap to expand
+      </p>
 
       {expanded && (
         <div className="space-y-4 border-t border-border p-3">
           <div>
             <p className="text-xs text-muted-foreground">
-              ICD-10 {diagnosis.icd10_code ?? "—"} · model probability{" "}
-              {diagnosis.probability_score != null
-                ? `${Math.round(Number(diagnosis.probability_score) * (Number(diagnosis.probability_score) <= 1 ? 100 : 1))}%`
-                : "n/a"}{" "}
+              ICD-10 {diagnosis.icd10_code ?? "—"} · model probability {probText}{" "}
               (supporting signal only)
             </p>
           </div>
@@ -377,12 +421,12 @@ function DiagnosisRow({
 
           {!diagnosis.doctor_confirmed ? (
             <Button
-              size="sm"
+              className="w-full font-semibold"
               disabled={!reviewed || confirm.isPending}
               onClick={() => confirm.mutate()}
             >
               {confirm.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-              Confirm diagnosis
+              {reviewed ? "Confirm diagnosis" : "Review evidence to confirm"}
             </Button>
           ) : (
             <p className="text-xs text-muted-foreground">
