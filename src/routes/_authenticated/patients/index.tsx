@@ -91,20 +91,30 @@ function RosterPage() {
         </p>
       </header>
 
-      <dl aria-label="Patient roster statistics" className="grid grid-cols-3 divide-x divide-background/15 rounded-lg bg-foreground py-5 text-background">
+      <dl aria-label="Patient roster statistics" className="flex rounded-lg border border-border bg-card py-5">
         {[
-          { label: "Active patients", value: totalPatients },
-          { label: "Open crises", value: totalCrises },
-          { label: "Needs attention", value: totalAttention },
-        ].map((stat) => (
-          <div key={stat.label} className="flex min-w-0 flex-col gap-2 px-3 sm:px-6">
-            <dt className="text-xs font-medium text-background/75 sm:text-sm">{stat.label}</dt>
-            <dd className="font-stat text-3xl leading-none tabular-nums sm:text-4xl">
-              {isLoading ? <span aria-label="Loading" className="inline-block h-9 w-10 animate-pulse rounded bg-background/15" /> : stat.value}
+          { label: "Active patients", value: totalPatients, danger: false },
+          { label: "Open crises", value: totalCrises, danger: totalCrises > 0 },
+          { label: "Needs attention", value: totalAttention, danger: false },
+        ].map((stat, i, all) => (
+          <div
+            key={stat.label}
+            className={`flex min-w-0 flex-1 flex-col gap-2 px-3 sm:px-6 ${
+              i < all.length - 1 ? "border-r border-border" : ""
+            }`}
+          >
+            <dt className="text-xs font-medium text-muted-foreground sm:text-sm">{stat.label}</dt>
+            <dd
+              className={`font-stat text-3xl leading-none tabular-nums sm:text-4xl ${
+                stat.danger ? "text-destructive" : "text-foreground"
+              }`}
+            >
+              {isLoading ? <span aria-label="Loading" className="inline-block h-9 w-10 animate-pulse rounded bg-muted" /> : stat.value}
             </dd>
           </div>
         ))}
       </dl>
+
 
       <Card className="gap-0 border-0 bg-transparent py-0 shadow-none">
         <CardHeader className="border-b border-border px-0 pb-3">
